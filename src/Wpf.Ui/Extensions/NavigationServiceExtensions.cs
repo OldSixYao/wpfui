@@ -13,6 +13,27 @@ namespace Wpf.Ui.Extensions;
 public static class NavigationServiceExtensions
 {
     /// <summary>
+    /// 菜单替换后清理导航状态，并等待内容框架提交空页面。
+    /// </summary>
+    /// <param name="navigationService">使用该导航控件的服务。</param>
+    /// <returns>完成导航清理的任务。</returns>
+    public static Task ResetNavigationAsync(this INavigationService navigationService)
+    {
+        INavigationView? control = navigationService is NavigationService service
+            ? service.NavigationControl
+            : navigationService.GetNavigationControl();
+
+        if (control is NavigationView navigationView)
+        {
+            return navigationView.ResetNavigationAsync();
+        }
+
+        control?.CleanCache();
+        control?.ClearJournal();
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
     /// Sets the pane display mode of the navigation service.
     /// </summary>
     /// <param name="navigationService">The navigation service.</param>

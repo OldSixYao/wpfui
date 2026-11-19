@@ -226,6 +226,8 @@ public class NavigationViewItem
 
     protected Grid? ChevronGrid { get; set; }
 
+    private NavigationView? _paneNavigationView;
+
     static NavigationViewItem()
     {
         DefaultStyleKeyProperty.OverrideMetadata(
@@ -238,12 +240,8 @@ public class NavigationViewItem
     {
         Id = Guid.NewGuid().ToString("n");
 
-        Unloaded += static (sender, _) =>
-        {
-            ((NavigationViewItem)sender).NavigationViewItemParent = null;
-        };
-
-        Loaded += (_, _) => InitializeNavigationViewEvents();
+        Loaded += OnLoaded;
+        Unloaded += OnUnloaded;
 
         // Initialize the `Items` collection
         var menuItems = new ObservableCollection<object>();
@@ -476,14 +474,33 @@ public class NavigationViewItem
         }
     }
 
-    private void InitializeNavigationViewEvents()
+    /// <summary>
+    /// 只在菜单项挂载期间监听侧栏状态，避免主导航持有已移除的设备项。
+    /// </summary>
+    private void OnLoaded(object sender, RoutedEventArgs e)
     {
-        if (NavigationView.GetNavigationParent(this) is { } navigationView)
+        if (_paneNavigationView is not null || NavigationView.GetNavigationParent(this) is not { } navigationView)
         {
-            SetCurrentValue(IsPaneOpenProperty, navigationView.IsPaneOpen);
+            return;
+        }
 
-            navigationView.PaneOpened += (_, _) => SetCurrentValue(IsPaneOpenProperty, true);
-            navigationView.PaneClosed += (_, _) => SetCurrentValue(IsPaneOpenProperty, false);
+        _paneNavigationView = navigationView;
+        navigationView.PaneOpened += OnNavigationPaneChanged;
+        navigationView.PaneClosed += OnNavigationPaneChanged;
+        SetCurrentValue(IsPaneOpenProperty, navigationView.IsPaneOpen);
+    }
+
+    private void OnUnloaded(object sender, RoutedEventArgs e)
+    {
+        NavigationViewItemParent = null;
+        if (_paneNavigationView is { } navigationView)
+        {
+            navigationView.PaneOpened -= OnNavigationPaneChanged;
+            navigationView.PaneClosed -= OnNavigationPaneChanged;
+            _paneNavigationView = null;
         }
     }
+
+    private void OnNavigationPaneChanged(NavigationView navigationView, RoutedEventArgs e) =>
+        SetCurrentValue(IsPaneOpenProperty, navigationView.IsPaneOpen);
 }

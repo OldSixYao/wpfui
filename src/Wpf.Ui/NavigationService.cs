@@ -16,7 +16,7 @@ public partial class NavigationService(INavigationViewPageProvider pageProvider)
     /// <summary>
     /// Gets or sets the control representing navigation.
     /// </summary>
-    protected INavigationView? NavigationControl { get; set; }
+    protected internal INavigationView? NavigationControl { get; set; }
 
     /// <inheritdoc />
     public INavigationView GetNavigationControl()

@@ -7,6 +7,7 @@
 
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Windows.Threading;
 using Wpf.Ui.Abstractions;
 
 // ReSharper disable once CheckNamespace
@@ -339,6 +340,58 @@ public partial class NavigationView
     {
         _customCache.Clear();
         CleanSelected();
+    }
+
+    /// <summary>
+    /// 在替换菜单后释放页面与导航历史，并重新登记当前菜单和页脚菜单。
+    /// </summary>
+    /// <returns>内容框架已处理清空请求时完成的任务。</returns>
+    public async Task ResetNavigationAsync()
+    {
+        foreach (INavigationViewItem item in NavigationStack)
+        {
+            item.Deactivate(this);
+        }
+
+        foreach (NavigationViewItem item in PageIdOrTargetTagNavigationViewsDictionary.Values.OfType<NavigationViewItem>())
+        {
+            if (item.IsActive)
+            {
+                item.Deactivate(this);
+            }
+        }
+
+        NavigationStack.Clear();
+        if (_breadcrumbBarItems.Count > 0)
+        {
+            _breadcrumbBarItems.Clear();
+        }
+
+        ClearJournal();
+        SetCurrentValue(IsBackEnabledProperty, CanGoBack);
+
+        foreach (FrameworkElement page in PageToNavigationItemDictionary.Keys)
+        {
+            page.ClearValue(NavigationParentProperty);
+        }
+
+        PageToNavigationItemDictionary.Clear();
+        _customCache.Clear();
+        _cache.Clear();
+
+        PageIdOrTargetTagNavigationViewsDictionary.Clear();
+        PageTypeNavigationViewsDictionary.Clear();
+        AddItemsToDictionaries();
+        UpdateAutoSuggestBoxSuggestions();
+
+        ClearSelectedItem();
+
+        if (NavigationViewContentPresenter is not null)
+        {
+            UpdateContent(null);
+            // 内容框架会将导航请求入队。等请求执行后，调用方才能继续关闭窗口。
+            await Dispatcher.InvokeAsync(static () => { }, DispatcherPriority.Loaded);
+        }
     }
 
     /// <summary>

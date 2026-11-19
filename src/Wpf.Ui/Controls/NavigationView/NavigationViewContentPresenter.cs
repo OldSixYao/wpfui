@@ -105,11 +105,6 @@ public class NavigationViewContentPresenter : Frame
     {
         Navigating += static (sender, eventArgs) =>
         {
-            if (eventArgs.Content is null)
-            {
-                return;
-            }
-
             var self = (NavigationViewContentPresenter)sender;
             self.OnNavigating(eventArgs);
         };
@@ -165,8 +160,12 @@ public class NavigationViewContentPresenter : Frame
 
     protected virtual void OnNavigating(System.Windows.Navigation.NavigatingCancelEventArgs eventArgs)
     {
-        NotifyContentAboutNavigatingTo(eventArgs.Content);
+        if (eventArgs.Content is not null)
+        {
+            NotifyContentAboutNavigatingTo(eventArgs.Content);
+        }
 
+        // 清空页面时也要通知原页面解除订阅。
         if (eventArgs.Navigator is not NavigationViewContentPresenter navigator)
         {
             return;

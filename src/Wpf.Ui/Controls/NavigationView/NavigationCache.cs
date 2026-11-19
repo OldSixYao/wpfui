@@ -13,6 +13,8 @@ internal class NavigationCache
 {
     private readonly Dictionary<Type, object?> _entires = [];
 
+    public void Clear() => _entires.Clear();
+
     public object? Remember(Type? entryType, NavigationCacheMode cacheMode, Func<object?> generate)
     {
         if (entryType == null)
